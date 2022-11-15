@@ -6,6 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rust-embed = "6.4.2"
+rust-embed = {version = "6.4.2", features = ["include-exclude"]}
 handlebars = {version = "4.3.5", features = ["rust-embed"]}
 coverage_report = { path = "../coverage_report" }
