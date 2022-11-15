@@ -3,6 +3,7 @@ mod helpers;
 use coverage_report::Report;
 use handlebars::{Handlebars, TemplateError};
 use helpers::PercentFormatHelper;
+use rust_embed::RustEmbed;
 
 pub struct TemplateFormatter<'a> {
     handlebars: Handlebars<'a>,
@@ -21,10 +22,7 @@ impl TemplateFormatter<'_> {
     }
 
     fn register_templates(&mut self) -> Result<(), TemplateError> {
-        self.handlebars.register_template_file(
-            "default",
-            "/Users/bware7/projects/lcov-reporter/template_formatter/templates/default.hbs",
-        )
+        self.handlebars.register_embed_templates::<Assets>()
     }
 
     fn register_helpers(&mut self) {
@@ -33,6 +31,14 @@ impl TemplateFormatter<'_> {
     }
 
     pub fn render_default(&self, report: &Report) {
-        print!("{}", self.handlebars.render("default", &report).unwrap())
+        print!(
+            "{}",
+            self.handlebars.render("default.hbs", &report).unwrap()
+        )
     }
 }
+
+#[derive(RustEmbed)]
+#[folder = "templates"]
+#[include = "*.hbs"]
+struct Assets;
