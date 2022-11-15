@@ -1,0 +1,33 @@
+Total Coverage: <b>{{percent-formatter lines_covered_percent}}</b>
+
+{{#each projects}}
+<details>
+    <summary>
+        Project: {{this.project_name}} | Coverage: <b>{{percent-formatter this.lines_covered_percent}}</b>
+    </summary>
+
+<table>
+    <tbody>
+    <tr>
+        <th>File</th>
+        <th>Branches</th>
+        <th>Funcs</th>
+        <th>Lines</th>
+    </tr>
+    {{#each this.components}}
+        <tr>
+            <td colspan='4'><b>{{this.component_name}}</b></td>
+        </tr>
+        {{#each this.source_files}}
+            <tr>
+                <td>{{this.filename}}</td>
+                <td>{{percent-formatter this.branches_covered_percent}}</td>
+                <td>{{percent-formatter this.functions_covered_percent}}</td>
+                <td>{{percent-formatter this.lines_covered_percent}}</td>
+            </tr>
+        {{/each}}
+    {{/each}}
+    </tbody>
+</table>
+</details>
+{{/each}}

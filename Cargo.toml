@@ -1,0 +1,13 @@
+[package]
+name = "coverage-reporter"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["Brendan Ware <bware43@gmail.com>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+
+[dependencies]
+template_formatter = { path = "template_formatter" }
+lcov_parsing = { path = "lcov_parsing" }
