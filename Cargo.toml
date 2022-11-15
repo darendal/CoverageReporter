@@ -11,3 +11,4 @@ authors = ["Brendan Ware <bware43@gmail.com>"]
 [dependencies]
 template_formatter = { path = "template_formatter" }
 lcov_parsing = { path = "lcov_parsing" }
+clap = { version = "4.0.25", features = ["derive"] }
