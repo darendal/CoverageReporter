@@ -1,4 +1,4 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1.59.0 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.65-bullseye AS chef
 WORKDIR app
 
 FROM chef AS planner
@@ -13,7 +13,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --release --bin coverage-reporter
 
-FROM debian:buster-slim as runtime
+FROM debian:bullseye-slim as runtime
 COPY --from=builder /app/target/release/coverage-reporter /usr/local/bin/coverage-reporter
 CMD ["coverage-reporter"]
 
