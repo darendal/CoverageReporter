@@ -1,0 +1,18 @@
+{{repeat "-" metadata.max_filename_length}}----------|----------|----------|---------
+{{pad "Files" metadata.max_filename_length " "}}          | % Branch | % Funcs  | % Lines
+{{repeat "-" metadata.max_filename_length}}----------|----------|----------|---------
+{{pad "All Files" metadata.max_filename_length " "}}          |{{percent-formatter branches_covered_percent 10}}|{{percent-formatter functions_covered_percent 10}}|{{percent-formatter lines_covered_percent 10}}
+{{#each projects}}
+    {{#threshold-color this.lines_covered_percent}}{{pad this.project_name ../metadata.max_filename_length " "}}      |{{percent-formatter branches_covered_percent 10}}|{{percent-formatter functions_covered_percent 10}}|{{percent-formatter lines_covered_percent 10}}{{/threshold-color}}
+    {{#each this.components}}
+    {{#each this.source_files}}
+        {{#threshold-color this.lines_covered_percent}}{{pad this.filename ../../../metadata.max_filename_length " "}}  |{{percent-formatter branches_covered_percent 10}}|{{percent-formatter functions_covered_percent 10}}|{{percent-formatter lines_covered_percent 10}}{{/threshold-color}}
+    {{/each}}
+    {{/each}}
+{{/each}}
+
+=============================== Coverage summary ===============================
+{{#threshold-color branches_covered_percent}}Branches     : {{percent-formatter branches_covered_percent 5}} ( {{branches_hit}}/{{branches_found}} ){{/threshold-color}}
+{{#threshold-color functions_covered_percent}}Functions    : {{percent-formatter functions_covered_percent 5}} ( {{functions_hit}}/{{functions_found}} ){{/threshold-color}}
+{{#threshold-color lines_covered_percent}}Lines        : {{percent-formatter lines_covered_percent 5}} ( {{lines_hit}}/{{lines_found}} ){{/threshold-color}}
+================================================================================

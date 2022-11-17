@@ -209,6 +209,7 @@ impl UnprocessedReport {
                 agg.functions_hit as f32,
                 agg.functions_found as f32,
             ),
+            metadata: None,
         };
     }
 }
