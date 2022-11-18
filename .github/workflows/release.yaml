@@ -5,11 +5,13 @@ on:
     branches: [ test-workflow ]
 
 permissions:
-  contents: read
+  permissions:
+    contents: read
+
 
 env:
   REGISTRY: ghcr.io
-  #IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
 
@@ -19,14 +21,25 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write # Used for identity challenge with sigstore/fulcio
 
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
         with:
           egress-policy: block
-          allowed-endpoints:
+          allowed-endpoints: >
             api.github.com:443
+            auth.docker.io:443
+            crates.io:443
+            github.com:443
+            objects.githubusercontent.com:443
+            production.cloudflare.docker.com:443
+            raw.githubusercontent.com:443
+            registry-1.docker.io:443
+            static.crates.io:443
+            storage.googleapis.com:443
+
 
       - name: Checkout
         uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
@@ -39,19 +52,39 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@8c0edbc76e98fa90f69d9a2c020dcb50019dc325
 
-      - name: Build + Push Docker image
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@57396166ad8aefe6098280995947635806a0e6ea
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image
         id: build-and-push
-        uses: docker/build-push-action@c56af957549030174b10d6867f20e78cfd7debc5
+        uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a
         with:
           context: .
-          push: false
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      # Sign the Docker image digest
-      # Uses the identity token to provision an ephemeral certificate against the community Fulcio instance
+      # Sign the resulting Docker image digest except on PRs.
+      # This will only write to the public Rekor transparency log when the Docker
+      # repository is public to avoid leaking data.  If you would like to publish
+      # transparency data even for private images, pass --force to cosign below.
       # https://github.com/sigstore/cosign
-      - name: Sign the Docker image
+      - name: Sign the published Docker image
+        if: ${{ github.event_name != 'pull_request' }}
         env:
           COSIGN_EXPERIMENTAL: "true"
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
         run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.build-and-push.outputs.digest }}
