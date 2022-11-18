@@ -1,8 +1,15 @@
 mod helpers;
+mod template_options;
+
+use std::ffi::{OsStr, OsString};
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
+pub use template_options::{Reporter, TemplateOptions};
 
 use crate::helpers::{PaddingHelper, PercentFormatHelper, RepeatHelper, ThresholdColorHelper};
 use coverage_report::Report;
-use handlebars::{Handlebars, TemplateError};
+use handlebars::{Handlebars, RenderError, TemplateError};
 use rust_embed::RustEmbed;
 
 pub struct TemplateFormatter<'a> {
@@ -27,6 +34,12 @@ impl TemplateFormatter<'_> {
         self.handlebars.register_embed_templates::<Assets>()
     }
 
+    pub fn register_custom_template(&mut self, template_path: &PathBuf) {
+        self.handlebars
+            .register_template_file("custom", template_path)
+            .unwrap();
+    }
+
     fn register_helpers(&mut self) {
         self.handlebars
             .register_helper("percent-formatter", Box::new(PercentFormatHelper));
@@ -39,18 +52,65 @@ impl TemplateFormatter<'_> {
         self.handlebars.register_helper(
             "threshold-color",
             Box::new(ThresholdColorHelper {
-                options: self.options.clone(),
+                thresholds: self.options.thresholds.clone(),
             }),
         )
     }
 
-    pub fn render_default(&self, report: &Report) {
-        print!(
-            "{}",
-            self.handlebars
-                .render("default_console.hbs", &report)
-                .unwrap()
-        )
+    pub fn render(&self, reporter: &Reporter, report: &Report) -> Result<(), RenderError> {
+        match reporter {
+            Reporter::Text { output_filename } => self._render(
+                report,
+                "default_console.hbs",
+                self.output_file(output_filename, Some("txt".as_ref()))
+                    .unwrap(),
+            ),
+            Reporter::Console => self._render(report, "default_console.hbs", std::io::stdout()),
+            Reporter::Markdown { output_filename } => self._render(
+                report,
+                "default.hbs",
+                self.output_file(output_filename, Some("md".as_ref()))
+                    .unwrap(),
+            ),
+            Reporter::Custom {
+                output_filename, ..
+            } => self._render(
+                report,
+                "custom",
+                self.output_file(output_filename, None).unwrap(),
+            ),
+        }
+    }
+
+    pub fn output_file(
+        &self,
+        filename: &OsString,
+        extension: Option<&OsStr>,
+    ) -> std::io::Result<File> {
+        let mut my_path = self.options.output_filepath.clone();
+        my_path.set_file_name(filename);
+
+        match extension {
+            None => {}
+            Some(ext) => {
+                my_path.set_extension(ext);
+            }
+        }
+
+        return File::create(my_path.as_path());
+    }
+
+    fn _render<W>(
+        &self,
+        context: &Report,
+        template_name: &str,
+        writer: W,
+    ) -> Result<(), RenderError>
+    where
+        W: Write,
+    {
+        self.handlebars
+            .render_to_write(template_name, context, writer)
     }
 }
 
@@ -58,20 +118,3 @@ impl TemplateFormatter<'_> {
 #[folder = "templates"]
 #[include = "*.hbs"]
 struct Assets;
-
-#[derive(Clone)]
-pub struct TemplateOptions {
-    low_threshold: u8,
-    medium_threshold: u8,
-    high_threshold: u8,
-}
-
-impl TemplateOptions {
-    pub fn new(low: u8, medium: u8, high: u8) -> TemplateOptions {
-        return TemplateOptions {
-            low_threshold: low,
-            medium_threshold: medium,
-            high_threshold: high,
-        };
-    }
-}
